@@ -1,4 +1,12 @@
+# Trivial Python Forth.
+# Based on http://www.openbookproject.net/py4fun
+import sys
+
+
 def main():
+    if len(sys.argv) > 0:
+        ev_file(sys.argv[1])
+        return
     while True:
         line = raw_input("Forth:> ")
         ev(line)
@@ -8,7 +16,14 @@ def ev(line):
     pcode = compile(line)
     if pcode is None:
         return
-    execute(pcode)
+    execute([], pcode)
+
+
+def ev_file(file):
+    ds = []
+    with open(file) as f:
+        for line in f:
+            ds = execute(ds, compile(line.strip()))
 
 
 def rPush(ds, cod, p):
@@ -79,9 +94,8 @@ def compile(line):
     return pcode
 
 
-def execute(pcode):
+def execute(ds, pcode):
     # print pcode
-    ds = []
     p = 0
     while p < len(pcode):
         func = pcode[p]
@@ -95,8 +109,7 @@ def execute(pcode):
     return ds
 
 
-# main()
-ev("5 6 + 7 8 + * .")
-# TODO Support reading file from command line with simple program.
-# TODO Support equvalent in idrs
+main()
+# ev("5 6 + 7 8 + * .")
+# TODO Support equvalent in idris
 # TODO Add support for reading from microbit
