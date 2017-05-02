@@ -1,28 +1,32 @@
 module Main where
 
-type StackOp = [Int] -> (Maybe Int, [Int])
+-- StackOp is an operation between two stacks
+-- Each stack contains the stack [Int] and maybe a result
+-- From the previous Op.
+-- TODO This is very messy, maybe this is what monads are for?
+type StackOp = (Maybe Int, [Int]) -> (Maybe Int, [Int])
 
 push :: Int -> StackOp
-push n = \stk -> (Nothing, n : stk)
+push n = \(x, stk) -> (x, n : stk)
 
 add :: StackOp
-add [] = error "empty list"
-add [x] = error "not enough items"
-add (a:b:xs) = (Nothing, a+b : xs)
+add (_, []) = error "empty list"
+add (_, [x]) = error "not enough items"
+add (_, (a:b:xs)) = (Nothing, a+b : xs)
 
 mul :: StackOp
-mul [] = error "empty list"
-mul [x] = error "not enough items"
-mul (a:b:xs) = (Nothing, a*b : xs)
+mul (_, []) = error "empty list"
+mul (_, [x]) = error "not enough items"
+mul (_, (a:b:xs)) = (Nothing, a*b : xs)
 
 dot :: StackOp
-dot [] = error "empty list"
-dot (x:xs) = (Just x, xs)
+dot (_, []) = error "empty list"
+dot (_, (x:xs)) = (Just x, xs)
 
 run :: [Int] -> [StackOp] -> (Maybe Int, [Int])
 run stk [] = (Nothing, stk)
-run stk [op] = op stk
-run stk (op: ops) = run (op stk) ops
+run stk [op] = op Nothing stk
+run stk ((_, op): ops) = run (op stk) ops
 
 -- TODO maybe this isn't needed
 showResult :: (Maybe Int, [Int]) -> String
