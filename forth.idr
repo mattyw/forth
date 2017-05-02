@@ -45,11 +45,25 @@ rAdd = do val1 <- Pop
           val2 <- Pop
           Push (val1 + val2)
 
+rMul : StackOp () (S (S height)) (S height)
+rMul = do val1 <- Pop
+          val2 <- Pop
+          Push (val1 * val2)
+
 rDot : StackOp Integer (S height) (height)
 rDot = do Pop
 
-stackResult : (Integer, Vect 0 Integer) -> String
+stackResult : (Integer, Vect n Integer) -> String
 stackResult (result, _) = show result
 
+compile : List String -> List (StackOp a n m)--n, m because the ops might change the stack, or might not)
+compile [] = []
+compile (x :: xs) = ?compileWord x :: compile xs
+
+--compWord : String -> StackOp a n m
+--compWord "." = do rDot
+
 main : IO ()
-main = putStrLn $ stackResult $ runStack [1, 3] (do rAdd; rDot)
+main = putStrLn $ stackResult $ runStack [] (do Push 5; Push 6; rAdd; Push 7; Push 8; rAdd; rMul; rDot)
+-- TODO Need to change the StackOp type - check idris book for an IO version.
+-- We want to just use strings and leave the IO for the outer section only.
