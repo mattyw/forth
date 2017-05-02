@@ -1,6 +1,14 @@
 module Main where
 
+-- TODO Maybe this should be a a Union Type
+-- with one option being [Int] -> [Int] and
+-- another being [Int] -> (Int, [Int]
 type StackOp = [Int] -> (Maybe Int, [Int])
+
+type OpWithResult = (Maybe Int, [Int])
+instance Monad OpWithResult where
+    op1 >>= op2 = \(_, stk) -> op2
+    return stk = \res -> (res, stk)
 
 push :: Int -> StackOp
 push n = \stk -> (Nothing, n : stk)
