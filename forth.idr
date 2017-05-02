@@ -45,5 +45,11 @@ rAdd = do val1 <- Pop
           val2 <- Pop
           Push (val1 + val2)
 
+rDot : StackOp Integer (S height) (height)
+rDot = do Pop
+
+stackResult : (Integer, Vect 0 Integer) -> String
+stackResult (result, _) = show result
+
 main : IO ()
-main = putStrLn "hello"
+main = putStrLn $ stackResult $ runStack [1, 3] (do rAdd; rDot)
