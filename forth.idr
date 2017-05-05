@@ -60,8 +60,8 @@ compile : List String -> List (StackOp a n m)--n, m because the ops might change
 compile [] = []
 compile (x :: xs) = ?compileWord x :: compile xs
 
---compWord : String -> StackOp a n m
---compWord "." = do rDot
+compWord : String -> StackOp a n m
+compWord "." = do rDot
 
 main : IO ()
 main = putStrLn $ stackResult $ runStack [] (do Push 5; Push 6; rAdd; Push 7; Push 8; rAdd; rMul; rDot)

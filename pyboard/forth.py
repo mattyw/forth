@@ -1,46 +1,34 @@
 # Trivial Python Forth.
 # Based on http://www.openbookproject.net/py4fun
-import sys
-import serial
+import pyb
+import time
 
 
 def main():
-    if len(sys.argv) == 1:
-        pyboard_eval()
-    elif len(sys.argv) > 0:
-        ev_file(sys.argv[1])
-        return
-    while True:
-        line = raw_input("Forth:> ")
-        ev(line)
-
-
-def pyb_ev(line):
-    ser = serial.Serial("/dev/ttyACM0", 9600, timeout=1)
-    ser.write(line + "\r")
-    ser.flush()
-    print ser.readline()
-    ser.close()
-
-
-def pyboard_eval():
-    while True:
-        line = raw_input("Forth:> ")
-        pyb_ev(line)
+        led3 = pyb.LED(3)
+        led3.on()  # So we know the script is loaded
+        led = pyb.LED(2)
+        evalled = pyb.LED(4)
+        usb = pyb.USB_VCP()
+        while True:
+            led.on()
+            time.sleep_ms(500)
+            line = usb.readline()
+            if line is None:
+                continue
+            led.off()
+            #evalled.on()
+            usb.send(str(ev(line)) + "\n", timeout=5000)
+            #evalled.off()
+            time.sleep_ms(500)
 
 
 def ev(line):
-    pcode = compile(line)
-    if pcode is None:
-        return
-    execute([], pcode)
-
-
-def ev_file(file):
-    ds = []
-    with open(file) as f:
-        for line in f:
-            ds = execute(ds, compile(line.strip()))
+    return "hello" + line
+    #pcode = compile(line)
+    #if pcode is None:
+    #    return "not compiled"
+    #return execute([], pcode)
 
 
 def rPush(ds, cod, p):
@@ -77,7 +65,7 @@ def rDiv(ds, cod, p):
 
 
 def rDot(ds, cod, p):
-    print ds.pop()
+    print(ds.pop())
     return None, ds
 
 
@@ -127,6 +115,3 @@ def execute(ds, pcode):
 
 
 main()
-# ev("5 6 + 7 8 + * .")
-# TODO Support equvalent in idris
-# TODO Add support for reading from microbit
