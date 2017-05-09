@@ -56,12 +56,17 @@ rDot = do Pop
 stackResult : (Integer, Vect n Integer) -> String
 stackResult (result, _) = show result
 
-compile : List String -> List (StackOp a n m)--n, m because the ops might change the stack, or might not)
-compile [] = []
-compile (x :: xs) = ?compileWord x :: compile xs
+SomeStackOp : Type -> Type
+SomeStackOp a = (n : Nat ** m : Nat ** StackOp a n m)
+--n, m because the ops might change the stack, or might not)
 
-compWord : String -> StackOp a n m
-compWord "." = do rDot
+compile : List String -> List (SomeStackOp ())
+compile [] = []
+compile ("." :: xs) = SomeStackOp Integer :: compile xs
+compile ("+" :: xs) = ?b :: compile xs
+compile ("*" :: xs) = ?c :: compile xs
+compile (x :: xs) = ?d :: compile xs
+
 
 main : IO ()
 main = putStrLn $ stackResult $ runStack [] (do Push 5; Push 6; rAdd; Push 7; Push 8; rAdd; rMul; rDot)
