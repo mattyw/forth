@@ -7,38 +7,38 @@ data StackOp : Type -> Nat -> Nat -> Type where
   Pop : StackOp Integer (S height) height
   Top : StackOp Integer (S height) (S height) -- this means there has to be at least one item on the stack
 
+  GetStr : StackOp String height height
+  PutStr : String -> StackOp () height height
+
   Pure : ty -> StackOp ty height height
   (>>=) : StackOp a height1 height2 ->
        (a -> StackOp b height2 height3) ->
        StackOp b height1 height3
 
-testAdd : StackOp Integer 0 0
-testAdd = do Push 10
-             Push 2 --try removing this line, you'll see it fails to compile.
-             val1 <- Pop
-             val2 <- Pop
-             Pure (val1 + val2)
+data StackIO : Nat -> Type where
+  Do : StackOp  a height1 height2 ->
+       (a -> Inf (StackIO height2)) -> StackIO height1
 
--- try this with runStack [] testOnePopAdd - it should fail
--- then try runStakc [1] testOnePopAdd - should return 11
-testOnePopAdd : StackOp Integer 1 0
-testOnePopAdd = do Push 10
-                   val1 <- Pop
-                   val2 <- Pop
-                   Pure (val1 + val2)
+namespace StackDo
+  (>>=) : StackOp a height1 height2 ->
+       (a -> Inf (StackIO height2)) -> StackIO height1
+  (>>=) = Do
 
 runStack : (stk : Vect inHeight Integer) ->
            StackOp ty inHeight outHeight ->
-           (ty, Vect outHeight Integer)
+           IO (ty, Vect outHeight Integer)
 
-runStack stk (Push val) = ((), val :: stk)
-runStack (val :: stk) Pop = (val, stk)
-runStack (val :: stk) Top = (val, val :: stk)
+runStack stk (Push val) = pure ((), val :: stk)
+runStack (val :: stk) Pop = pure (val, stk)
+runStack (val :: stk) Top = pure (val, val :: stk)
 
-runStack stk (Pure x) = (x, stk)
-runStack stk (cmd >>= next)
-  = let (cmdRes, newStk) = runStack stk cmd in
-        runStack newStk (next cmdRes)
+runStack stk GetStr = do x <- getLine
+                         pure (x, stk)
+runStack stk (PutStr val) = do putStr val
+                               pure ((), stk)
+runStack stk (Pure x) = pure (x, stk)
+runStack stk (cmd >>= next) = do (cmdRes, newStk) <- runStack stk cmd 
+                                 runStack newStk (next cmdRes)
 
 rAdd : StackOp () (S (S height)) (S height)
 rAdd = do val1 <- Pop
@@ -56,14 +56,55 @@ rDot = do Pop
 stackResult : (Integer, Vect n Integer) -> String
 stackResult (result, _) = show result
 
-compile : List String -> List (StackOp a n m)--n, m because the ops might change the stack, or might not)
-compile [] = []
-compile (x :: xs) = ?compileWord x :: compile xs
+data Fuel = Dry | More (Lazy Fuel)
 
-compWord : String -> StackOp a n m
-compWord "." = do rDot
+partial
+forever : Fuel
+forever = More forever
+
+run : Fuel -> Vect height Integer -> StackIO height -> IO ()
+run (More fuel) stk (Do c f)
+                        = do (res, newStk) <- runStack stk c
+                             run fuel newStk (f res)
+run Dry stk p = pure ()
+
+data StkInput = Number Integer
+              | Add
+
+strToInput : String -> Maybe StkInput
+strToInput "" = Nothing
+strToInput "+" = Just Add
+strToInput n = if all isDigit (unpack n)
+                  then Just (Number (cast n))
+                  else Nothing
+
+mutual
+  tryAdd : StackIO height
+  tryAdd { height = (S (S h))}
+      = do rAdd
+           result <- Top
+           PutStr (show result ++ "\n")
+           stackCalc
+  tryAdd = do PutStr "Fewer than two items on the stack\n"
+              stackCalc
+
+  stackCalc : StackIO height
+  stackCalc = do PutStr ">"
+                 input <- GetStr
+                 case strToInput input of
+                        Nothing => do PutStr "invalid op\n"
+                                      stackCalc
+                        Just (Number x) => do Push x
+                                              stackCalc
+                        Just Add => tryAdd
 
 main : IO ()
-main = putStrLn $ stackResult $ runStack [] (do Push 5; Push 6; rAdd; Push 7; Push 8; rAdd; rMul; rDot)
--- TODO Need to change the StackOp type - check idris book for an IO version.
--- We want to just use strings and leave the IO for the outer section only.
+main = run forever [] stackCalc
+--main = putStrLn $ stackResult $ runStack [] (do Push 5; Push 6; rAdd; Push 7; Push 8; rAdd; rMul; rDot)
+-- TODO Add subtract and multiply
+-- TODO Add negate
+-- TODO Add discard
+-- TODO Add duplicate
+-- TODO Add command to quit the stack
+-- TODO Add printing the stack
+-- TODO Add support for taking a string in - rather than command line interactive
