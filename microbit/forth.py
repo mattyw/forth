@@ -7,8 +7,8 @@ def ev(line):
     pcode = []
     try:
         pcode = compile(line)
-    except:
-        return "error: %s" % (line)
+    except Exception as e:
+        return "error: %s %s" % (e, line)
     if pcode is None:
         return "not compiled"
     return execute([], pcode)
@@ -97,7 +97,17 @@ def execute(ds, pcode):
     return ds
 
 
+def stack_to_string(stack):
+    return ",".join(map(str, stack))
+
+
 while True:
-    resp = ev("5 6 + 7 8 + *")
-    display.scroll(str(resp[0]))
+    uart.init()
+    display.scroll(".")
+    if uart.any():
+        line = uart.readline().strip()
+        resp = ev(line)  # Something is wrong with the line we read
+        # resp = ev("1 2 +") this works
+        uart.write(stack_to_string(resp))
+        #display.scroll(stack_to_string(resp))
     sleep(2000)
