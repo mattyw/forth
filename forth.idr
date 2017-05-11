@@ -56,19 +56,42 @@ rDot = do Pop
 stackResult : (Integer, Vect n Integer) -> String
 stackResult (result, _) = show result
 
+--compile : List String -> List (SomeStackOp ())
+--compile [] = []
+--compile ("." :: xs) = SomeStackOp Integer :: compile xs
+--compile ("+" :: xs) = ?b :: compile xs
+--compile ("*" :: xs) = ?c :: compile xs
+--compile (x :: xs) = ?d :: compile xs
+
+-- From idris-lang google group
+total
 SomeStackOp : Type -> Type
 SomeStackOp a = (n : Nat ** m : Nat ** StackOp a n m)
---n, m because the ops might change the stack, or might not)
 
-compile : List String -> List (SomeStackOp ())
-compile [] = []
-compile ("." :: xs) = SomeStackOp Integer :: compile xs
-compile ("+" :: xs) = ?b :: compile xs
-compile ("*" :: xs) = ?c :: compile xs
-compile (x :: xs) = ?d :: compile xs
+total
+binOp : (Integer -> Integer -> Integer) -> StackOp () (S (S n)) (S n)
+binOp op = do x <- Pop; y <- Pop; Push (op x y)
+
+total
+compile : List String -> StackOp () n m -> Maybe (SomeStackOp ())
+compile [] s = Just (_ ** _ ** s)
+compile ("+" :: xs) s {n} {m=S (S m)} = compile xs s' where
+  s' : StackOp () n (S m)
+  s' = do s; binOp (+)
+compile ("*" :: xs) s {n} {m=S (S m)} = compile xs s' where
+  s' : StackOp () n (S m)
+  s' = do s; binOp (*)
+compile (x :: xs) s {n} {m} = compile xs s' where
+  s' : StackOp () n (S m)
+  s' = do s; Push (cast x)
+
+startCompile : List String -> Maybe (SomeStackOp ())
+startCompile xs = compile xs (Pure () {height=Z}) 
+-- End of idris-lang google group
 
 
 main : IO ()
 main = putStrLn $ stackResult $ runStack [] (do Push 5; Push 6; rAdd; Push 7; Push 8; rAdd; rMul; rDot)
+--main = putStrLn $ stackResult $ runStack [] compile ["5", "6", "+", "7", "8", "+", "*"]
 -- TODO Need to change the StackOp type - check idris book for an IO version.
 -- We want to just use strings and leave the IO for the outer section only.
