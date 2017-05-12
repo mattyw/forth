@@ -55,6 +55,14 @@ rSub = do val1 <- Pop
           val2 <- Pop
           Push (val1 - val2)
 
+rNeg : StackOp () (S height) (S height)
+rNeg = do val1 <- Pop
+          Push (-val1)
+
+rDup : StackOp () (S height) (S (S height))
+rDup = do val1 <- Top
+          Push (val1)
+
 rDot : StackOp Integer (S height) (height)
 rDot = do Pop
 
@@ -74,14 +82,22 @@ run (More fuel) stk (Do c f)
 run Dry stk p = pure ()
 
 data StkInput = Number Integer
+              | Quit
+              | Neg
+              | Dup
               | Add
               | Sub
+              | Discard
               | Mul
 
 strToInput : String -> Maybe StkInput
 strToInput "" = Nothing
+strToInput ":q" = Just Quit
 strToInput "+" = Just Add
 strToInput "-" = Just Sub
+strToInput "neg" = Just Neg
+strToInput "discard" = Just Discard
+strToInput "dup" = Just Dup
 strToInput "*" = Just Mul
 strToInput n = if all isDigit (unpack n)
                   then Just (Number (cast n))
@@ -115,6 +131,32 @@ mutual
   tryMul = do PutStr "Fewer than two items on the stack\n"
               stackCalc
 
+  tryNeg : StackIO height
+  tryNeg { height = (S h)}
+      = do rNeg
+           result <- Top
+           PutStr (show result ++ "\n")
+           stackCalc
+  tryNeg = do PutStr "Fewer than one item on the stack\n"
+              stackCalc
+
+  tryDup : StackIO height
+  tryDup { height = (S h)}
+      = do rDup
+           result <- Top
+           PutStr (show result ++ "\n")
+           stackCalc
+  tryDup = do PutStr "Fewer than one item on the stack\n"
+              stackCalc
+
+  tryDiscard : StackIO height
+  tryDiscard { height = (S h)}
+      = do result <- Pop
+           PutStr (show result ++ "\n")
+           stackCalc
+  tryDiscard = do PutStr "Fewer than one item on the stack\n"
+                  stackCalc
+
   --tryBin : StackOp () (S (S height)) (S height) -> StackIO height
   --tryBin op { height = (S (S h))}
   --    = do op
@@ -128,21 +170,24 @@ mutual
   stackCalc = do PutStr ">"
                  input <- GetStr
                  case strToInput input of
+                        Just Quit => do PutStr "bye\n"
+                                        ?foobar
                         Nothing => do PutStr "invalid op\n"
                                       stackCalc
                         Just (Number x) => do Push x
                                               stackCalc
                         --Just Add => tryBin rAdd
+                        Just Discard => tryDiscard
+                        Just Neg => tryNeg
                         Just Add => tryAdd
+                        Just Dup => tryDup
                         Just Sub => trySub
                         Just Mul => tryMul
 
 main : IO ()
 main = run forever [] stackCalc
 --main = putStrLn $ stackResult $ runStack [] (do Push 5; Push 6; rAdd; Push 7; Push 8; rAdd; rMul; rDot)
--- TODO Add negate
--- TODO Add discard
--- TODO Add duplicate
+-- TODO Simplify the try calls = especially the binary ops like add/mul/sub
 -- TODO Add command to quit the stack
 -- TODO Add printing the stack
 -- TODO Add support for taking a string in - rather than command line interactive
