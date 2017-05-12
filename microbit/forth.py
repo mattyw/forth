@@ -1,5 +1,6 @@
 # Trivial Python Forth.
 # Based on http://www.openbookproject.net/py4fun
+# http://python.microbit.org/editor.html#
 from microbit import *
 
 
@@ -106,8 +107,6 @@ while True:
     display.scroll(".")
     if uart.any():
         line = uart.readline().strip()
-        resp = ev(line)  # Something is wrong with the line we read
-        # resp = ev("1 2 +") this works
-        uart.write(stack_to_string(resp))
-        #display.scroll(stack_to_string(resp))
+        resp = ev(str(line, "utf-8"))
+        uart.write("%s\n" % (resp))
     sleep(2000)

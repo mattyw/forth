@@ -5,6 +5,6 @@ while True:
     line = raw_input("Forth:> ")
     if line == ":q":
         break
-    ser.write(line + "\r")
-    print ser.readline()
+    ser.write(line.encode() + "\r")
+    print ser.readall()
 ser.close()
