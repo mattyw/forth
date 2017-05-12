@@ -76,11 +76,13 @@ run Dry stk p = pure ()
 data StkInput = Number Integer
               | Add
               | Sub
+              | Mul
 
 strToInput : String -> Maybe StkInput
 strToInput "" = Nothing
 strToInput "+" = Just Add
 strToInput "-" = Just Sub
+strToInput "*" = Just Mul
 strToInput n = if all isDigit (unpack n)
                   then Just (Number (cast n))
                   else Nothing
@@ -104,6 +106,24 @@ mutual
   trySub = do PutStr "Fewer than two items on the stack\n"
               stackCalc
 
+  tryMul : StackIO height
+  tryMul { height = (S (S h))}
+      = do rMul
+           result <- Top
+           PutStr (show result ++ "\n")
+           stackCalc
+  tryMul = do PutStr "Fewer than two items on the stack\n"
+              stackCalc
+
+  --tryBin : StackOp () (S (S height)) (S height) -> StackIO height
+  --tryBin op { height = (S (S h))}
+  --    = do op
+  --         result <- Top
+  --         PutStr (show result ++ "\n")
+  --         stackCalc
+  --tryBin op = do PutStr "Fewer than two items on the stack\n"
+  --               stackCalc
+
   stackCalc : StackIO height
   stackCalc = do PutStr ">"
                  input <- GetStr
@@ -112,13 +132,14 @@ mutual
                                       stackCalc
                         Just (Number x) => do Push x
                                               stackCalc
+                        --Just Add => tryBin rAdd
                         Just Add => tryAdd
                         Just Sub => trySub
+                        Just Mul => tryMul
 
 main : IO ()
 main = run forever [] stackCalc
 --main = putStrLn $ stackResult $ runStack [] (do Push 5; Push 6; rAdd; Push 7; Push 8; rAdd; rMul; rDot)
--- TODO Add subtract and multiply
 -- TODO Add negate
 -- TODO Add discard
 -- TODO Add duplicate
