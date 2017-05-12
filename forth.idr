@@ -50,6 +50,11 @@ rMul = do val1 <- Pop
           val2 <- Pop
           Push (val1 * val2)
 
+rSub : StackOp () (S (S height)) (S height)
+rSub = do val1 <- Pop
+          val2 <- Pop
+          Push (val1 - val2)
+
 rDot : StackOp Integer (S height) (height)
 rDot = do Pop
 
@@ -70,10 +75,12 @@ run Dry stk p = pure ()
 
 data StkInput = Number Integer
               | Add
+              | Sub
 
 strToInput : String -> Maybe StkInput
 strToInput "" = Nothing
 strToInput "+" = Just Add
+strToInput "-" = Just Sub
 strToInput n = if all isDigit (unpack n)
                   then Just (Number (cast n))
                   else Nothing
@@ -88,6 +95,15 @@ mutual
   tryAdd = do PutStr "Fewer than two items on the stack\n"
               stackCalc
 
+  trySub : StackIO height
+  trySub { height = (S (S h))}
+      = do rSub
+           result <- Top
+           PutStr (show result ++ "\n")
+           stackCalc
+  trySub = do PutStr "Fewer than two items on the stack\n"
+              stackCalc
+
   stackCalc : StackIO height
   stackCalc = do PutStr ">"
                  input <- GetStr
@@ -97,6 +113,7 @@ mutual
                         Just (Number x) => do Push x
                                               stackCalc
                         Just Add => tryAdd
+                        Just Sub => trySub
 
 main : IO ()
 main = run forever [] stackCalc
