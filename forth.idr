@@ -157,14 +157,12 @@ mutual
   tryDiscard = do PutStr "Fewer than one item on the stack\n"
                   stackCalc
 
-  tryBin : StackOp () height1 height2 -> StackIO height1
-  tryBin op {height1 = (S height2)} {height2 = (S h)}
+  tryBin : StackOp () (S (S height)) (S height) -> StackIO (S (S height))
+  tryBin op  
       = do op
            result <- Top
            PutStr (show result ++ "\n")
            stackCalc
-  tryBin op = do PutStr "Fewer than two items on the stack\n"
-                 stackCalc
 
   stackCalc : StackIO height
   stackCalc = do PutStr ">"
@@ -176,15 +174,21 @@ mutual
                                       stackCalc
                         Just (Number x) => do Push x
                                               stackCalc
+                        Just Discard => tryDiscard
+                        Just Neg => tryNeg
+                        Just Dup => tryDup
                         Just Add => case height of
                                          (S (S h)) => tryBin rAdd
                                          _        => do PutStr "invalid op: not enough items on the stack\n"
                                                         stackCalc
-                        Just Discard => tryDiscard
-                        Just Neg => tryNeg
-                        Just Dup => tryDup
-                        Just Sub => trySub
-                        Just Mul => tryMul
+                        Just Sub => case height of
+                                         (S (S h)) => tryBin rSub
+                                         _        => do PutStr "invalid op: not enough items on the stack\n"
+                                                        stackCalc
+                        Just Mul => case height of
+                                         (S (S h)) => tryBin rMul
+                                         _        => do PutStr "invalid op: not enough items on the stack\n"
+                                                        stackCalc
 
 main : IO ()
 main = run forever [] stackCalc
