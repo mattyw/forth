@@ -157,14 +157,14 @@ mutual
   tryDiscard = do PutStr "Fewer than one item on the stack\n"
                   stackCalc
 
-  --tryBin : StackOp () (S (S height)) (S height) -> StackIO height
-  --tryBin op { height = (S (S h))}
-  --    = do op
-  --         result <- Top
-  --         PutStr (show result ++ "\n")
-  --         stackCalc
-  --tryBin op = do PutStr "Fewer than two items on the stack\n"
-  --               stackCalc
+  tryBin : StackOp () height1 height2 -> StackIO height1
+  tryBin op {height1 = (S height2)} {height2 = (S h)}
+      = do op
+           result <- Top
+           PutStr (show result ++ "\n")
+           stackCalc
+  tryBin op = do PutStr "Fewer than two items on the stack\n"
+                 stackCalc
 
   stackCalc : StackIO height
   stackCalc = do PutStr ">"
@@ -176,10 +176,12 @@ mutual
                                       stackCalc
                         Just (Number x) => do Push x
                                               stackCalc
-                        --Just Add => tryBin rAdd
+                        Just Add => case height of
+                                         (S (S h)) => tryBin rAdd
+                                         _        => do PutStr "invalid op: not enough items on the stack\n"
+                                                        stackCalc
                         Just Discard => tryDiscard
                         Just Neg => tryNeg
-                        Just Add => tryAdd
                         Just Dup => tryDup
                         Just Sub => trySub
                         Just Mul => tryMul
