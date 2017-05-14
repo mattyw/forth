@@ -4,7 +4,7 @@
 from microbit import *
 
 
-def ev(line):
+def ev(stack, line):
     pcode = []
     try:
         pcode = compile(line)
@@ -12,7 +12,7 @@ def ev(line):
         return "error: %s %s" % (e, line)
     if pcode is None:
         return "not compiled"
-    return execute([], pcode)
+    return execute(stack, pcode)
 
 
 def rPush(ds, cod, p):
@@ -102,11 +102,51 @@ def stack_to_string(stack):
     return ",".join(map(str, stack))
 
 
-while True:
-    uart.init()
-    display.scroll(".")
-    if uart.any():
-        line = uart.readline().strip()
-        resp = ev(str(line, "utf-8"))
-        uart.write("%s\n" % (resp))
-    sleep(2000)
+def serial_mode():
+    while True:
+        uart.init()
+        display.scroll(".")
+        if uart.any():
+            line = uart.readline().strip()
+            resp = ev([], str(line, "utf-8"))
+            uart.write("%s\n" % (resp))
+        sleep(2000)
+
+
+class Display:
+    def __init__(self):
+        self.ipt = "00000"
+        self.out = "00000"
+
+    def input(self, value):
+        self.ipt = "{0:05b}".format(value)
+
+    def output(self, value):
+        self.out = "{0:05b}".format(value)
+
+    def img(self):
+        return Image("%s:%s:00000:00000:00000" % (self.ipt, self.out))
+
+
+def button_mode():
+    leds = Display()
+    stack = [0]
+
+    count = 0
+    while True:
+        if button_a.is_pressed():
+            count = count + 1
+            leds.input(count)
+        if button_b.is_pressed():
+            stack = ev(stack, "%s +" % (str(count)))
+            count = 0
+            leds.input(count)
+            top = 0
+            if len(stack) > 0:
+                top = stack[0]
+            leds.output(top)
+        else:
+            display.show(leds.img())
+        sleep(200)
+
+button_mode()
