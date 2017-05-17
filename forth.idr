@@ -16,12 +16,11 @@ data StackOp : Type -> Nat -> Nat -> Type where
        StackOp b height1 height3
 
 data StackIO : Nat -> Type where
-  Do : StackOp  a height1 height2 ->
-       (a -> Inf (StackIO height2)) -> StackIO height1
+  Quit: a -> StackIO height1
+  Do : StackOp a height1 height2 -> (a -> Inf (StackIO height2)) -> StackIO height1
 
 namespace StackDo
-  (>>=) : StackOp a height1 height2 ->
-       (a -> Inf (StackIO height2)) -> StackIO height1
+  (>>=) : StackOp a height1 height2 -> (a -> Inf (StackIO height2)) -> StackIO height1
   (>>=) = Do
 
 runStack : (stk : Vect inHeight Integer) ->
@@ -75,14 +74,15 @@ partial
 forever : Fuel
 forever = More forever
 
-run : Fuel -> Vect height Integer -> StackIO height -> IO ()
+run : Fuel -> Vect height Integer -> StackIO height -> IO (Maybe a)
+run fuel stk (Quit value) = ?fldfj
 run (More fuel) stk (Do c f)
                         = do (res, newStk) <- runStack stk c
                              run fuel newStk (f res)
-run Dry stk p = pure ()
+run Dry stk p = pure Nothing
 
 data StkInput = Number Integer
-              | Quit
+              | Exit
               | Neg
               | Dup
               | Add
@@ -92,7 +92,7 @@ data StkInput = Number Integer
 
 strToInput : String -> Maybe StkInput
 strToInput "" = Nothing
-strToInput ":q" = Just Quit
+strToInput ":q" = Just Exit
 strToInput "+" = Just Add
 strToInput "-" = Just Sub
 strToInput "neg" = Just Neg
@@ -168,8 +168,8 @@ mutual
   stackCalc = do PutStr ">"
                  input <- GetStr
                  case strToInput input of
-                        Just Quit => do PutStr "bye\n"
-                                        ?foobar
+                        Just Exit => do PutStr "bye\n"
+                                        Quit ()
                         Nothing => do PutStr "invalid op\n"
                                       stackCalc
                         Just (Number x) => do Push x
@@ -191,7 +191,8 @@ mutual
                                                         stackCalc
 
 main : IO ()
-main = run forever [] stackCalc
+main = do run forever [] stackCalc
+          ?maafd
 --main = putStrLn $ stackResult $ runStack [] (do Push 5; Push 6; rAdd; Push 7; Push 8; rAdd; rMul; rDot)
 -- TODO Simplify the try calls = especially the binary ops like add/mul/sub
 -- TODO Add command to quit the stack
